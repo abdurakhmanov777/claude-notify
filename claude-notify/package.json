@@ -1,14 +1,14 @@
 {
-  "name": "claude-ntfy-toggle",
-  "displayName": "Claude ntfy toggle",
-  "description": "Status bar toggle + phone push (ntfy) when a Claude Code request finishes",
-  "version": "1.2.0",
+  "name": "claude-notify",
+  "displayName": "Claude Notify",
+  "description": "Phone push (ntfy) when a Claude Code request finishes, with a status bar toggle",
+  "version": "2.0.0",
   "publisher": "local",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/abdurakhmanov777/claude-ping.git",
-    "directory": "claude-ntfy-toggle"
+    "directory": "claude-notify"
   },
   "bugs": {
     "url": "https://github.com/abdurakhmanov777/claude-ping/issues"
@@ -44,48 +44,48 @@
   "contributes": {
     "commands": [
       {
-        "command": "claudeNtfy.toggle",
-        "title": "Claude: переключить уведомления на телефон"
+        "command": "claudeNotify.toggle",
+        "title": "Claude Notify: переключить уведомления на телефон"
       },
       {
-        "command": "claudeNtfy.test",
-        "title": "Claude: отправить тестовое уведомление"
+        "command": "claudeNotify.test",
+        "title": "Claude Notify: отправить тестовое уведомление"
       }
     ],
     "configuration": {
-      "title": "Claude ntfy",
+      "title": "Claude Notify",
       "properties": {
-        "claudeNtfy.enabled": {
+        "claudeNotify.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Отправлять уведомление на телефон, когда запрос Claude Code завершился."
         },
-        "claudeNtfy.topic": {
+        "claudeNotify.topic": {
           "type": "string",
           "default": "",
           "description": "Имя вашего личного топика ntfy (на него подписан телефон в приложении ntfy). Топики публичные - придумайте непредсказуемое имя. Пока пусто, уведомления не отправляются."
         },
-        "claudeNtfy.title": {
+        "claudeNotify.title": {
           "type": "string",
           "default": "Claude Code",
           "description": "Заголовок уведомления."
         },
-        "claudeNtfy.message": {
+        "claudeNotify.message": {
           "type": "string",
           "default": "Запрос в Claude Code завершён",
           "description": "Текст уведомления."
         },
-        "claudeNtfy.server": {
+        "claudeNotify.server": {
           "type": "string",
           "default": "https://ntfy.sh",
           "description": "Базовый URL сервера ntfy."
         },
-        "claudeNtfy.token": {
+        "claudeNotify.token": {
           "type": "string",
           "default": "",
           "description": "Токен доступа ntfy (Bearer). Нужен только для защищённых топиков на своём сервере ntfy; для публичного ntfy.sh оставьте пустым."
         },
-        "claudeNtfy.priority": {
+        "claudeNotify.priority": {
           "type": "string",
           "enum": [
             "min",
@@ -97,12 +97,12 @@
           "default": "default",
           "description": "Приоритет пуша в ntfy (влияет на звук/всплытие на телефоне)."
         },
-        "claudeNtfy.tags": {
+        "claudeNotify.tags": {
           "type": "string",
           "default": "",
           "description": "Теги ntfy через запятую (напр. white_check_mark,robot). Известные имена показываются эмодзи в уведомлении. Список: https://docs.ntfy.sh/emojis/"
         },
-        "claudeNtfy.click": {
+        "claudeNotify.click": {
           "type": "string",
           "default": "",
           "description": "URL, который откроется при тапе по уведомлению на телефоне. Пусто - без действия."

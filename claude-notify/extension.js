@@ -6,7 +6,8 @@ const https = require('https');
 const http = require('http');
 
 // The Stop hook in ~/.claude/settings.json just touches this file when a
-// Claude Code request finishes. All ntfy logic lives here in the extension.
+// Claude Code request finishes. All notification logic lives here in the
+// extension.
 const claudeDir = path.join(os.homedir(), '.claude');
 const triggerName = '.ntfy-trigger';
 const triggerPath = path.join(claudeDir, triggerName);
@@ -18,7 +19,7 @@ const POLL_INTERVAL_MS = 3000;
 const PRIORITY_MAP = { min: 1, low: 2, default: 3, high: 4, max: 5 };
 
 function cfg() {
-  return vscode.workspace.getConfiguration('claudeNtfy');
+  return vscode.workspace.getConfiguration('claudeNotify');
 }
 
 function isEnabled() {
@@ -135,10 +136,10 @@ function sendNotification() {
 function describeError(err) {
   const msg = err && err.message ? err.message : String(err);
   if (msg === 'no-topic') {
-    return 'не задан топик (claudeNtfy.topic).';
+    return 'не задан топик (claudeNotify.topic).';
   }
   if (msg === 'bad-server') {
-    return 'некорректный адрес сервера (claudeNtfy.server).';
+    return 'некорректный адрес сервера (claudeNotify.server).';
   }
   if (msg === 'timeout') {
     return 'сервер не ответил вовремя (таймаут).';
@@ -227,8 +228,8 @@ function activate(context) {
     vscode.StatusBarAlignment.Right,
     100
   );
-  item.name = 'Claude ntfy';
-  item.command = 'claudeNtfy.toggle';
+  item.name = 'Claude Notify';
+  item.command = 'claudeNotify.toggle';
   render(item);
   item.show();
   context.subscriptions.push(item);
@@ -239,7 +240,7 @@ function activate(context) {
   } catch (e) { /* nothing to clean */ }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('claudeNtfy.toggle', async function () {
+    vscode.commands.registerCommand('claudeNotify.toggle', async function () {
       const c = cfg();
       const now = c.get('enabled', true);
       await c.update('enabled', !now, vscode.ConfigurationTarget.Global);
@@ -248,23 +249,23 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('claudeNtfy.test', async function () {
+    vscode.commands.registerCommand('claudeNotify.test', async function () {
       const topic = String(cfg().get('topic', '') || '').trim();
       if (!topic) {
         vscode.window.showWarningMessage(
-          'Claude ntfy: задайте топик в настройках (claudeNtfy.topic), тогда уведомления заработают.'
+          'Claude Notify: задайте топик в настройках (claudeNotify.topic), тогда уведомления заработают.'
         );
         return;
       }
       try {
         await sendNotification();
         vscode.window.setStatusBarMessage(
-          'Claude ntfy: тестовое уведомление отправлено ✓',
+          'Claude Notify: тестовое уведомление отправлено ✓',
           4000
         );
       } catch (err) {
         vscode.window.showErrorMessage(
-          'Claude ntfy: не удалось отправить — ' + describeError(err)
+          'Claude Notify: не удалось отправить — ' + describeError(err)
         );
       }
     })
@@ -272,7 +273,7 @@ function activate(context) {
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(function (e) {
-      if (e.affectsConfiguration('claudeNtfy')) {
+      if (e.affectsConfiguration('claudeNotify')) {
         render(item);
       }
     })
