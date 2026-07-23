@@ -10,7 +10,7 @@
 
 - **VS Code** (стабильный) и **Claude Code** (расширение/CLI) в нём.
 - **Телефон** с приложением **ntfy** (Android: Google Play / F-Droid; iOS: App Store).
-- На Windows для хука нужен **Git Bash** (ставится вместе с Git). На macOS/Linux ничего доставлять не нужно.
+- Для хука на Windows проще всего **Git Bash** (ставится вместе с Git). Если Git Bash нет — ниже есть вариант хука на PowerShell. На macOS/Linux ничего доставлять не нужно.
 
 ---
 
@@ -19,10 +19,13 @@
 ### 1. Поставить расширение
 
 **Способ А (VSIX, рекомендую):**
-- В VS Code: `Ctrl+Shift+P` → **Extensions: Install from VSIX...** → выбрать `claude-ntfy-toggle-1.1.0.vsix`.
-- Или из терминала: `code --install-extension claude-ntfy-toggle-1.1.0.vsix`
+- Скачать готовый `claude-ntfy-toggle-<версия>.vsix` со страницы [Releases](https://github.com/abdurakhmanov777/claude-ping/releases).
+- В VS Code: `Ctrl+Shift+P` → **Extensions: Install from VSIX...** → выбрать скачанный файл.
+- Или из терминала: `code --install-extension claude-ntfy-toggle-<версия>.vsix`
 
-**Способ Б (без VSIX):** распаковать папку `claude-ntfy-toggle` в каталог расширений VS Code и перезапустить окно:
+**Способ Б (собрать самому):** в папке `claude-ntfy-toggle` выполнить `npm install && npm run package` — получится `.vsix`, который ставится как в способе А.
+
+**Способ В (без VSIX):** распаковать/скопировать папку `claude-ntfy-toggle` в каталог расширений VS Code и перезапустить окно:
 - Windows: `%USERPROFILE%\.vscode\extensions\`
 - macOS/Linux: `~/.vscode/extensions/`
 
@@ -36,7 +39,7 @@ node -e "console.log('claude-'+require('crypto').randomBytes(8).toString('hex'))
 
 (или `openssl rand -hex 8`). Пример: `claude-9f2a7c14bb03de55`. Пока топик пустой, уведомления не отправляются.
 
-Остальное по желанию: **Title** (заголовок), **Message** (текст), **Enabled** (вкл/выкл), **Server** (по умолчанию `https://ntfy.sh`).
+Остальное по желанию: **Title** (заголовок), **Message** (текст), **Enabled** (вкл/выкл), **Server**, **Priority**, **Tags**, **Click**, **Token** — см. таблицу ниже.
 
 ### 3. Подписаться на телефоне
 
@@ -44,7 +47,9 @@ node -e "console.log('claude-'+require('crypto').randomBytes(8).toString('hex'))
 
 ### 4. Добавить триггер в Claude Code
 
-Расширение узнаёт о завершении запроса через хук Claude Code. Открыть файл настроек Claude Code `~/.claude/settings.json` (Windows: `C:\Users\<вы>\.claude\settings.json`) и добавить блок `hooks` (если блок уже есть - дописать объект в массив `Stop`):
+Расширение узнаёт о завершении запроса через хук Claude Code. Открыть файл настроек Claude Code `~/.claude/settings.json` (Windows: `C:\Users\<вы>\.claude\settings.json`) и добавить блок `hooks` (если блок уже есть - дописать объект в массив `Stop`).
+
+**macOS / Linux / Windows с Git Bash:**
 
 ```json
 {
@@ -65,12 +70,33 @@ node -e "console.log('claude-'+require('crypto').randomBytes(8).toString('hex'))
 }
 ```
 
+**Windows без Git Bash (PowerShell):**
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "async": true,
+            "command": "Add-Content -Path \"$env:USERPROFILE\\.claude\\.ntfy-trigger\" -Value x"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
 Хук просто «трогает» файл `~/.claude/.ntfy-trigger` - никаких данных об уведомлении в нём нет, всё остальное делает расширение.
 
 ### 5. Перезагрузить и проверить
 
 - `Ctrl+Shift+P` → **Developer: Reload Window**.
-- `Ctrl+Shift+P` → **Claude: отправить тестовое уведомление** - на телефон должен прийти пуш.
+- `Ctrl+Shift+P` → **Claude: отправить тестовое уведомление** - на телефон должен прийти пуш. Если что-то не так (неверный топик/токен, нет сети), расширение покажет причину.
 - Дальше пуш будет приходить сам после каждого завершённого запроса Claude Code.
 
 ---
@@ -84,6 +110,10 @@ node -e "console.log('claude-'+require('crypto').randomBytes(8).toString('hex'))
 | `claudeNtfy.title` | `Claude Code` | Заголовок уведомления. |
 | `claudeNtfy.message` | `Запрос в Claude Code завершён` | Текст уведомления. |
 | `claudeNtfy.server` | `https://ntfy.sh` | Сервер ntfy (можно свой self-hosted). |
+| `claudeNtfy.token` | *(пусто)* | Bearer-токен для защищённых топиков на своём сервере. Для ntfy.sh не нужен. |
+| `claudeNtfy.priority` | `default` | Приоритет пуша: `min`, `low`, `default`, `high`, `max`. |
+| `claudeNtfy.tags` | *(пусто)* | Теги/эмодзи ntfy через запятую, напр. `white_check_mark,robot`. [Список эмодзи](https://docs.ntfy.sh/emojis/). |
+| `claudeNtfy.click` | *(пусто)* | URL, открывающийся при тапе по уведомлению. |
 
 Команды (палитра `Ctrl+Shift+P`): **Claude: переключить уведомления на телефон**, **Claude: отправить тестовое уведомление**.
 
@@ -92,14 +122,23 @@ node -e "console.log('claude-'+require('crypto').randomBytes(8).toString('hex'))
 ## Как это устроено
 
 - **Хук Claude Code** (`Stop`) при завершении запроса дописывает файл `~/.claude/.ntfy-trigger`. Только Claude Code знает момент завершения, поэтому этот однострочный триггер обязателен.
-- **Расширение** следит за `~/.claude` и при появлении триггера шлёт пуш на ntfy (Node `https`, JSON-публикация - корректный UTF-8 в заголовке и тексте). При нескольких открытых окнах VS Code триггер «захватывается» атомарно, так что пуш уходит ровно один раз.
+- **Расширение** следит за `~/.claude` (плюс резервный опрос на случай пропущенного события) и при появлении триггера шлёт пуш на ntfy (Node `https`, JSON-публикация - корректный UTF-8 в заголовке и тексте). При нескольких открытых окнах VS Code триггер «захватывается» атомарно, так что пуш уходит ровно один раз.
 - Кнопка в статус-баре переключает настройку `claudeNtfy.enabled`.
 
-## Ограничения и приватность
+## Приватность и ограничения
 
 - Пуш уходит, только когда открыт VS Code с расширением (для работы в Claude Code это всегда так).
-- Топик ntfy **публичный**: кто знает имя - может читать и слать в него. Держите имя случайным; для приватности можно поднять свой ntfy-сервер и указать его в `claudeNtfy.server`.
-- Расширение работает на Windows/macOS/Linux. На Windows хуку нужен Git Bash.
+- Топик ntfy **публичный**: кто знает имя - может читать и слать в него. Держите имя случайным. Для приватности поднимите свой ntfy-сервер, укажите его в `claudeNtfy.server` и задайте `claudeNtfy.token`.
+- Расширение работает на Windows/macOS/Linux. Хуку на Windows нужен Git Bash **или** вариант на PowerShell (см. шаг 4).
+
+## Сборка из исходников
+
+```bash
+cd claude-ntfy-toggle
+npm install
+npm run lint      # проверка кода (необязательно)
+npm run package   # -> claude-ntfy-toggle-<версия>.vsix
+```
 
 ## Удаление
 

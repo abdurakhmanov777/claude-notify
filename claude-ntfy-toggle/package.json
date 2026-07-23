@@ -2,9 +2,25 @@
   "name": "claude-ntfy-toggle",
   "displayName": "Claude ntfy toggle",
   "description": "Status bar toggle + phone push (ntfy) when a Claude Code request finishes",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "publisher": "local",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abdurakhmanov777/claude-ping.git",
+    "directory": "claude-ntfy-toggle"
+  },
+  "bugs": {
+    "url": "https://github.com/abdurakhmanov777/claude-ping/issues"
+  },
+  "homepage": "https://github.com/abdurakhmanov777/claude-ping#readme",
+  "keywords": [
+    "claude",
+    "claude code",
+    "ntfy",
+    "notifications",
+    "push"
+  ],
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -15,6 +31,16 @@
     "onStartupFinished"
   ],
   "main": "./extension.js",
+  "scripts": {
+    "lint": "eslint .",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@types/vscode": "^1.75.0",
+    "@vscode/vsce": "^3.2.0",
+    "eslint": "^9.15.0"
+  },
   "contributes": {
     "commands": [
       {
@@ -53,6 +79,33 @@
           "type": "string",
           "default": "https://ntfy.sh",
           "description": "Базовый URL сервера ntfy."
+        },
+        "claudeNtfy.token": {
+          "type": "string",
+          "default": "",
+          "description": "Токен доступа ntfy (Bearer). Нужен только для защищённых топиков на своём сервере ntfy; для публичного ntfy.sh оставьте пустым."
+        },
+        "claudeNtfy.priority": {
+          "type": "string",
+          "enum": [
+            "min",
+            "low",
+            "default",
+            "high",
+            "max"
+          ],
+          "default": "default",
+          "description": "Приоритет пуша в ntfy (влияет на звук/всплытие на телефоне)."
+        },
+        "claudeNtfy.tags": {
+          "type": "string",
+          "default": "",
+          "description": "Теги ntfy через запятую (напр. white_check_mark,robot). Известные имена показываются эмодзи в уведомлении. Список: https://docs.ntfy.sh/emojis/"
+        },
+        "claudeNtfy.click": {
+          "type": "string",
+          "default": "",
+          "description": "URL, который откроется при тапе по уведомлению на телефоне. Пусто - без действия."
         }
       }
     }

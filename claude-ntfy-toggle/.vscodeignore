@@ -1,0 +1,9 @@
+# Sources and tooling not needed inside the packaged .vsix
+.github/**
+node_modules/**
+.gitignore
+.vscodeignore
+eslint.config.js
+package-lock.json
+*.vsix
+CHANGELOG.md

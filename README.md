@@ -1,107 +1,22 @@
-# Claude ntfy toggle
+# claude-ping
 
-Уведомление на телефон, когда **запрос в Claude Code завершился**. В статус-баре VS Code — кнопка-переключатель, пуш приходит через бесплатный сервис [ntfy.sh](https://ntfy.sh) в приложение на Android/iOS.
+Пуш на телефон, когда **запрос в Claude Code завершился**. В статус-баре VS Code — кнопка-переключатель, уведомление приходит через бесплатный сервис [ntfy.sh](https://ntfy.sh) в приложение на Android/iOS.
 
-Работает молча: клик по кнопке включает/выключает, ничего не всплывает. Кнопка показывает состояние иконкой: 🔔 - включено, 🔕 - выключено.
+Репозиторий содержит VS Code-расширение **Claude ntfy toggle**.
 
----
+## 📦 Расширение
 
-## Что понадобится
+Код и полная документация — в папке [`claude-ntfy-toggle/`](claude-ntfy-toggle/):
 
-- **VS Code** (стабильный) и **Claude Code** (расширение/CLI) в нём.
-- **Телефон** с приложением **ntfy** (Android: Google Play / F-Droid; iOS: App Store).
-- На Windows для хука нужен **Git Bash** (ставится вместе с Git). На macOS/Linux ничего доставлять не нужно.
+- **[Установка и настройка →](claude-ntfy-toggle/README.md)**
+- **[История изменений →](claude-ntfy-toggle/CHANGELOG.md)**
 
----
+## ⚡ Коротко
 
-## Установка - 5 шагов
+1. Поставить `.vsix` из [Releases](https://github.com/abdurakhmanov777/claude-ping/releases) (или собрать: `cd claude-ntfy-toggle && npm install && npm run package`).
+2. Задать свой топик ntfy в настройках VS Code (`Ctrl+,` → «Claude ntfy») и подписаться на него в приложении ntfy на телефоне.
+3. Добавить `Stop`-хук в `~/.claude/settings.json` (см. [README расширения](claude-ntfy-toggle/README.md#4-добавить-триггер-в-claude-code)).
 
-### 1. Поставить расширение
+## Лицензия
 
-**Способ А (VSIX, рекомендую):**
-- В VS Code: `Ctrl+Shift+P` → **Extensions: Install from VSIX...** → выбрать `claude-ntfy-toggle-1.1.0.vsix`.
-- Или из терминала: `code --install-extension claude-ntfy-toggle-1.1.0.vsix`
-
-**Способ Б (без VSIX):** распаковать папку `claude-ntfy-toggle` в каталог расширений VS Code и перезапустить окно:
-- Windows: `%USERPROFILE%\.vscode\extensions\`
-- macOS/Linux: `~/.vscode/extensions/`
-
-### 2. Задать свой топик и настройки
-
-`Ctrl+,` → в поиске **Claude ntfy**. Заполнить **Claude Ntfy: Topic** - это ваше личное имя канала. Топики ntfy **публичные**, поэтому имя должно быть непредсказуемым. Сгенерировать можно так:
-
-```bash
-node -e "console.log('claude-'+require('crypto').randomBytes(8).toString('hex'))"
-```
-
-(или `openssl rand -hex 8`). Пример: `claude-9f2a7c14bb03de55`. Пока топик пустой, уведомления не отправляются.
-
-Остальное по желанию: **Title** (заголовок), **Message** (текст), **Enabled** (вкл/выкл), **Server** (по умолчанию `https://ntfy.sh`).
-
-### 3. Подписаться на телефоне
-
-Открыть приложение **ntfy** → **+** (Subscribe to topic) → ввести **ровно тот же** топик, что и в настройках → Subscribe.
-
-### 4. Добавить триггер в Claude Code
-
-Расширение узнаёт о завершении запроса через хук Claude Code. Открыть файл настроек Claude Code `~/.claude/settings.json` (Windows: `C:\Users\<вы>\.claude\settings.json`) и добавить блок `hooks` (если блок уже есть - дописать объект в массив `Stop`):
-
-```json
-{
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "shell": "bash",
-            "async": true,
-            "command": "echo >> \"$HOME/.claude/.ntfy-trigger\" || true"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-Хук просто «трогает» файл `~/.claude/.ntfy-trigger` - никаких данных об уведомлении в нём нет, всё остальное делает расширение.
-
-### 5. Перезагрузить и проверить
-
-- `Ctrl+Shift+P` → **Developer: Reload Window**.
-- `Ctrl+Shift+P` → **Claude: отправить тестовое уведомление** - на телефон должен прийти пуш.
-- Дальше пуш будет приходить сам после каждого завершённого запроса Claude Code.
-
----
-
-## Настройки
-
-| Параметр | По умолчанию | Что это |
-|---|---|---|
-| `claudeNtfy.enabled` | `true` | Слать пуши или нет (то же, что кнопка в статус-баре). |
-| `claudeNtfy.topic` | *(пусто)* | Ваш личный топик ntfy. Обязательно задать. |
-| `claudeNtfy.title` | `Claude Code` | Заголовок уведомления. |
-| `claudeNtfy.message` | `Запрос в Claude Code завершён` | Текст уведомления. |
-| `claudeNtfy.server` | `https://ntfy.sh` | Сервер ntfy (можно свой self-hosted). |
-
-Команды (палитра `Ctrl+Shift+P`): **Claude: переключить уведомления на телефон**, **Claude: отправить тестовое уведомление**.
-
----
-
-## Как это устроено
-
-- **Хук Claude Code** (`Stop`) при завершении запроса дописывает файл `~/.claude/.ntfy-trigger`. Только Claude Code знает момент завершения, поэтому этот однострочный триггер обязателен.
-- **Расширение** следит за `~/.claude` и при появлении триггера шлёт пуш на ntfy (Node `https`, JSON-публикация - корректный UTF-8 в заголовке и тексте). При нескольких открытых окнах VS Code триггер «захватывается» атомарно, так что пуш уходит ровно один раз.
-- Кнопка в статус-баре переключает настройку `claudeNtfy.enabled`.
-
-## Ограничения и приватность
-
-- Пуш уходит, только когда открыт VS Code с расширением (для работы в Claude Code это всегда так).
-- Топик ntfy **публичный**: кто знает имя - может читать и слать в него. Держите имя случайным; для приватности можно поднять свой ntfy-сервер и указать его в `claudeNtfy.server`.
-- Расширение работает на Windows/macOS/Linux. На Windows хуку нужен Git Bash.
-
-## Удаление
-
-- Расширение: `Ctrl+Shift+X` → найти «Claude ntfy» → Uninstall (или `code --uninstall-extension local.claude-ntfy-toggle`).
-- Убрать блок `hooks` из `~/.claude/settings.json`.
+[MIT](claude-ntfy-toggle/LICENSE)
