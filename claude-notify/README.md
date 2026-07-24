@@ -146,6 +146,7 @@ node -e "console.log('claude-'+require('crypto').randomBytes(8).toString('hex'))
 | `claudeNotify.message` | `Запрос в Claude Code завершён` | Текст уведомления о завершении. Поддерживает `{project}`. |
 | `claudeNotify.notifyOnWaiting` | `true` | Слать отдельный пуш, когда Claude ждёт ответа/разрешения (нужен хук `Notification`). |
 | `claudeNotify.waitingMessage` | `Claude ждёт вашего разрешения` | Текст такого уведомления. Поддерживает `{project}`. |
+| `claudeNotify.dedupeSeconds` | `5` | Защита от дублей: в это окно (сек.) одинаковый пуш уходит один раз, даже если хук сработал несколько раз или открыто несколько окон. `0` - выключить. |
 | `claudeNotify.server` | `https://ntfy.sh` | Сервер ntfy (можно свой self-hosted). |
 | `claudeNotify.token` | *(пусто)* | Bearer-токен для защищённых топиков на своём сервере. Для ntfy.sh не нужен. |
 | `claudeNotify.priority` | `default` | Приоритет пуша: `min`, `low`, `default`, `high`, `max`. |

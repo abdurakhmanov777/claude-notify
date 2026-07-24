@@ -24,6 +24,14 @@ const HOOK_MARKER = '.ntfy-trigger';
 const REQUEST_TIMEOUT_MS = 8000;
 const POLL_INTERVAL_MS = 3000;
 
+// A single request can fire the hook more than once - e.g. while Claude Code
+// sessions started before a hook change still run the previous hook. Collect
+// such a burst for a moment and send once.
+const DEBOUNCE_MS = 1000;
+
+// kind -> { timer, project } for a send that is scheduled but not yet sent.
+const pending = {};
+
 // ntfy's JSON "priority" field is an integer 1..5; expose friendly names.
 const PRIORITY_MAP = { min: 1, low: 2, default: 3, high: 4, max: 5 };
 
@@ -225,6 +233,55 @@ function claimTrigger(kind) {
   return content;
 }
 
+// Claiming the trigger only guarantees that a single *write* is handled once.
+// Duplicate hooks (or several Claude Code sessions) can produce several writes,
+// so the actual send is also gated by a marker file shared by all windows.
+// Exclusive create is atomic across processes, so exactly one window wins.
+function claimSendSlot(kind) {
+  const seconds = Number(cfg().get('dedupeSeconds', 5));
+  const windowMs = isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0;
+  if (windowMs === 0) {
+    return true; // dedupe disabled
+  }
+  const marker = path.join(claudeDir, '.ntfy-dedupe-' + kind);
+  try {
+    const st = fs.statSync(marker);
+    if (Date.now() - st.mtimeMs < windowMs) {
+      return false; // another window just sent this kind
+    }
+    try { fs.unlinkSync(marker); } catch (e) { /* someone else recycled it */ }
+  } catch (e) { /* no marker yet */ }
+  try {
+    fs.closeSync(fs.openSync(marker, 'wx'));
+    return true;
+  } catch (e) {
+    return false; // lost the race to another window
+  }
+}
+
+// Coalesce a burst of triggers into one notification. A project name learned
+// from a later trigger wins over an earlier unknown one.
+function scheduleSend(kind, project) {
+  const existing = pending[kind];
+  if (existing) {
+    if (project && !existing.project) {
+      existing.project = project;
+    }
+    return;
+  }
+  const entry = { project: project, timer: null };
+  pending[kind] = entry;
+  entry.timer = setTimeout(function () {
+    delete pending[kind];
+    if (!claimSendSlot(kind)) {
+      return;
+    }
+    sendNotification(kind, entry.project).catch(function () {
+      /* offline / bad config - stay silent */
+    });
+  }, DEBOUNCE_MS);
+}
+
 function handleTrigger(kind) {
   const content = claimTrigger(kind);
   if (content === null) {
@@ -236,9 +293,7 @@ function handleTrigger(kind) {
   if (kind === WAITING && !cfg().get('notifyOnWaiting', true)) {
     return;
   }
-  sendNotification(kind, projectFromTrigger(content)).catch(function () {
-    /* offline / bad config - stay silent */
-  });
+  scheduleSend(kind, projectFromTrigger(content));
 }
 
 // Watch ~/.claude for the trigger files. fs.watch is fast but can miss events
@@ -480,6 +535,15 @@ function activate(context) {
       }
     })
   );
+
+  context.subscriptions.push({
+    dispose: function () {
+      Object.keys(pending).forEach(function (kind) {
+        clearTimeout(pending[kind].timer);
+        delete pending[kind];
+      });
+    },
+  });
 
   startWatching(context);
 }
